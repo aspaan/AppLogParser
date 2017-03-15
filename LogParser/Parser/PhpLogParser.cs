@@ -21,30 +21,34 @@ namespace LogParser
             sw.Start();
 
             var response = await FindAndSetLoggingFileAndCreateResponseObject();
-
             response.Parameters = parameters;
 
-            var logMetricsList = new Dictionary<string, LogMetrics>();
-
-            ReverseLineReader reader = new ReverseLineReader(response.LogFile);
-
-            long i = 0;
-            foreach (var line in reader)
+            if (!response.LogFileFound)
             {
-
-                if (!line.StartsWith("["))
-                    continue;
-
-                var metric = GetMetricFromLine(line, parameters, logMetricsList);
-
-                i += line.Length;
-                if (i > 100 * 1024 * 1024 || (metric != new DateTime() && metric < parameters.StartTime))
-                {
-                    break;
-                }
+                sw.Stop();
+                response.ParseTime = sw.ElapsedMilliseconds;
+                return response;
             }
-            response.DataScanned = i;
 
+            FileInfo fileInfo = new FileInfo(response.LogFile);
+            long filesize = fileInfo.Length;
+
+            long offSet = 0;
+            using (Stream stream = File.Open(response.LogFile, FileMode.Open))
+            {
+                offSet = BinarySearchLogFile(stream, parameters.EndTime, 0, filesize);
+            }
+
+            if (offSet == -1)
+            {
+                sw.Stop();
+                response.ParseTime = sw.ElapsedMilliseconds;
+                return response;
+            }
+
+            var logMetricsList = new Dictionary<string, LogMetrics>();
+            ReadFileInReverseOrder(response.LogFile, offSet, parameters, logMetricsList, response);
+            ReadFileInOrder(response.LogFile, offSet, parameters, logMetricsList, response);
 
             foreach (var category in logMetricsList.Keys)
             {
@@ -54,7 +58,7 @@ namespace LogParser
                                            group dt by dt.Timestamp.Ticks / parameters.TimeGrain.Ticks
             into g
                                            select
-                                               new LogMetric(new DateTime(g.Key * parameters.TimeGrain.Ticks), g.ToList().Count));
+                                               new LogMetric(Util.GetDateTimeInUtcFormat(new DateTime(g.Key * parameters.TimeGrain.Ticks)), g.ToList().Count));
 
                 logCatgeorMetrics.Sort((x, y) => x.Timestamp.CompareTo(y.Timestamp));
 
@@ -62,47 +66,6 @@ namespace LogParser
 
             }
 
-
-            sw.Stop();
-            response.ParseTime = sw.ElapsedMilliseconds;
-            return response;
-        }
-
-        public async override Task<LogResponse> GetLogsAsync(LogParserParameters parameters)
-        {
-            Stopwatch sw = new Stopwatch();
-            sw.Start();
-
-            var response = await FindAndSetLoggingFileAndCreateResponseObject();
-            response.Parameters = parameters;
-            ReverseLineReader reader = new ReverseLineReader(response.LogFile);
-
-            long i = 0;
-            foreach (var line in reader)
-            {
-
-                if (!line.StartsWith("["))
-                    continue;
-
-                var date = GetDateFromLog(line);
-
-                if (date > parameters.EndTime)
-                    continue;
-
-                if (date < parameters.StartTime)
-                    break;
-
-                response.Logs.Add(line);
-
-                i += line.Length;
-                if (i > 100 * 1024 * 1024 || response.Logs.Sum(x => x.Length) > 5 * 1024 * 1024)
-                {
-                    break;
-                }
-            }
-            response.DataScanned = i;
-
-            response.Logs.Reverse();
 
             sw.Stop();
             response.ParseTime = sw.ElapsedMilliseconds;
@@ -118,17 +81,19 @@ namespace LogParser
             response.SettingsFileFound = File.Exists(response.SettingsFile);
 
             if (response.SettingsFileFound)
+            {
                 response.LogFile = await GetLogFile(response.SettingsFile);
+            }
 
             //overwrite to test locally
-            //response.LogFile = @"D:\Home\site\wwwroot\php_errors2.log";
+            response.LogFile = @"D:\Home\site\wwwroot\php_errors.log";
 
             response.LogFileFound = File.Exists(response.LogFile);
 
             return response;
         }
-        
-        private DateTime GetMetricFromLine(string line, LogParserParameters parameters, Dictionary<string, LogMetrics> logMetricsList)
+
+        public override DateTime GetMetricFromLine(string line, LogParserParameters parameters, Dictionary<string, LogMetrics> logMetricsList)
         {
             DateTime date = GetDateFromLog(line);
 
@@ -161,7 +126,7 @@ namespace LogParser
             return line.Substring(dateBracket + 1, categoryEndIndex - 1).Replace(":", "").Trim();
         }
 
-        private DateTime GetDateFromLog(string line)
+        public override DateTime GetDateFromLog(string line)
         {
             var dateBracket = line.IndexOf("]");
             if (!line.StartsWith("[") || dateBracket == -1)
@@ -174,11 +139,13 @@ namespace LogParser
 
             TimeZoneInfo tzi = Util.OlsonTimeZoneToTimeZoneInfo(timeZone);
 
-            DateTime date = Util.GetDateTimeInUtcFormat(TimeZoneInfo.ConvertTime(apiDate, tzi));
-            return date;
+            if(timeZone=="UTC")
+                return TimeZoneInfo.ConvertTime(apiDate, tzi);
+
+            return TimeZoneInfo.ConvertTimeToUtc(apiDate, tzi);
         }
 
-        public async Task<string> GetLogFile(string filePath)
+        public override async Task<string> GetLogFile(string filePath)
         {
             try
             {
@@ -199,9 +166,8 @@ namespace LogParser
             }
             return "";
         }
+
+
     }
 
 }
-
-
-
