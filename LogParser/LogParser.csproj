@@ -42,6 +42,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Parser\Parser.cs" />
+    <Compile Include="Parser\ParserFactory.cs" />
     <Compile Include="ReverseLineReader.cs" />
     <Compile Include="Model\LogResponse.cs" />
     <Compile Include="Model\LogParserParameters.cs" />

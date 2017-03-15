@@ -18,7 +18,7 @@ namespace LogAnalyzer.Controllers
         // GET: api/Site
         [HttpGet]
         [Route("histogram")]
-        public async Task<LogResponse> Get(string startTime = null, string endTime = null, string timeGrain = null)
+        public async Task<LogResponse> Get(string stack, string startTime = null, string endTime = null, string timeGrain = null)
         {
             DateTime startTimeUtc, endTimeUtc;
             TimeSpan timeGrainTimeSpan;
@@ -39,38 +39,16 @@ namespace LogAnalyzer.Controllers
             p.EndTime = endTimeUtc;
             p.TimeGrain = timeGrainTimeSpan;
 
-            PhpLogParser parser = new PhpLogParser();
-            return await parser.GetHistogramAsync(p);
-        }
+            Parser parser = ParserFactory.GetParser(stack);
 
-        [HttpGet]
-        [Route("details")]
-        public async Task<LogResponse> Get(string startTime = null, string endTime = null)
-        {
-            DateTime startTimeUtc, endTimeUtc;
-            TimeSpan timeGrainTimeSpan;
-            string errorMessage;
-
-            if (!PrepareStartEndTimeUtc(startTime, endTime, "5", out startTimeUtc, out endTimeUtc, out timeGrainTimeSpan, out errorMessage))
+            if (parser == null)
             {
-                if (Request == null)
-                {
-                    throw new WebException(HttpStatusCode.BadRequest.ToString() + ": " + errorMessage);
-                }
-
-                throw new HttpResponseException(Request.CreateErrorResponse(HttpStatusCode.BadRequest, errorMessage));
+                throw new WebException("Stack "+stack+" has no log parser implimintation");
             }
 
-            LogParserParameters p = new LogParserParameters();
-            p.StartTime = startTimeUtc;
-            p.EndTime = endTimeUtc;
-            p.TimeGrain = timeGrainTimeSpan;
-
-            PhpLogParser parser = new PhpLogParser();
-            return await parser.GetLogsAsync(p);
+            return await parser.GetHistogramAsync(p);
         }
-
-
+        
         private static bool PrepareStartEndTimeUtc(string startTime, string endTime, string timeGrain, out DateTime startTimeUtc, out DateTime endTimeUtc, out TimeSpan timeGrainTimeSpan, out string errorMessage)
         {
 

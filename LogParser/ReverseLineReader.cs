@@ -11,40 +11,22 @@ namespace LogParser
     public sealed class ReverseLineReader : IEnumerable<string>
     {
 
-        /// <summary>
-        /// Means of creating a Stream to read from.
-        /// </summary>
         private readonly Func<Stream> _streamSource;
 
-        /// <summary>
-        /// Encoding to use when converting bytes to text
-        /// </summary>
         private readonly Encoding _encoding;
 
-        /// <summary>
-        /// Size of buffer (in bytes) to read each time we read from the
-        /// stream. This must be at least as big as the maximum number of
-        /// bytes for a single character.
-        /// </summary>
         private readonly int _bufferSize;
 
-        /// <summary>
-        /// Function which, when given a position within a file and a byte, states whether
-        /// or not the byte represents the start of a character.
-        /// </summary>
+        private long _position;
+
         private readonly Func<long, byte, bool> characterStartDetector;
         
-        /// <summary>
-        /// Creates a LineReader from a filename. The file is only opened
-        /// (or even checked for existence) when the enumerator is fetched.
-        /// UTF8 is used to decode the file into text.
-        /// </summary>
-        /// <param name="filename">File to read from</param>
-        public ReverseLineReader(string filename)
+        public ReverseLineReader(string filename, long position)
         {
             _streamSource = () => File.OpenRead(filename);
             _encoding = Encoding.UTF8;
             _bufferSize = 4096;
+            _position = position;
 
             if (_encoding.IsSingleByte)
             {
@@ -68,12 +50,6 @@ namespace LogParser
             }
         }
 
-
-
-        /// <summary>
-        /// Returns the enumerator reading strings backwards. If this method discovers that
-        /// the returned stream is either unreadable or unseekable, a NotSupportedException is thrown.
-        /// </summary>
         public IEnumerator<string> GetEnumerator()
         {
             Stream stream = _streamSource();
@@ -94,56 +70,42 @@ namespace LogParser
         {
             try
             {
-                long position = stream.Length;
-
-                if (_encoding is UnicodeEncoding && (position & 1) != 0)
+                if (_encoding is UnicodeEncoding && (_position & 1) != 0)
                 {
                     throw new InvalidDataException("UTF-16 encoding provided, but stream has odd length.");
                 }
 
-                // Allow up to two bytes for data from the start of the previous
-                // read which didn't quite make it as full characters
                 byte[] buffer = new byte[_bufferSize + 2];
                 char[] charBuffer = new char[_encoding.GetMaxCharCount(buffer.Length)];
                 int leftOverData = 0;
                 String previousEnd = null;
-                // TextReader doesn't return an empty string if there's line break at the end
-                // of the data. Therefore we don't return an empty string if it's our *first*
-                // return.
+
                 bool firstYield = true;
 
-                // A line-feed at the start of the previous buffer means we need to swallow
-                // the carriage-return at the end of this buffer - hence this needs declaring
-                // way up here!
                 bool swallowCarriageReturn = false;
 
-                while (position > 0)
+                while (_position > 0)
                 {
-                    int bytesToRead = Math.Min(position > int.MaxValue ? _bufferSize : (int)position, _bufferSize);
+                    int bytesToRead = Math.Min(_position > int.MaxValue ? _bufferSize : (int)_position, _bufferSize);
 
-                    position -= bytesToRead;
-                    stream.Position = position;
+                    _position -= bytesToRead;
+                    stream.Position = _position;
                     StreamUtil.ReadExactly(stream, buffer, bytesToRead);
                     // If we haven't read a full buffer, but we had bytes left
                     // over from before, copy them to the end of the buffer
                     if (leftOverData > 0 && bytesToRead != _bufferSize)
                     {
-                        // Buffer.BlockCopy doesn't document its behaviour with respect
-                        // to overlapping data: we *might* just have read 7 bytes instead of
-                        // 8, and have two bytes to copy...
+
                         Array.Copy(buffer, _bufferSize, buffer, bytesToRead, leftOverData);
                     }
                     // We've now *effectively* read this much data.
                     bytesToRead += leftOverData;
 
                     int firstCharPosition = 0;
-                    while (!characterStartDetector(position + firstCharPosition, buffer[firstCharPosition]))
+                    while (!characterStartDetector(_position + firstCharPosition, buffer[firstCharPosition]))
                     {
                         firstCharPosition++;
-                        // Bad UTF-8 sequences could trigger this. For UTF-8 we should always
-                        // see a valid character start in every 3 bytes, and if this is the start of the file
-                        // so we've done a short read, we should have the character start
-                        // somewhere in the usable buffer.
+
                         if (firstCharPosition == 3 || firstCharPosition == bytesToRead)
                         {
                             throw new InvalidDataException("Invalid UTF-8 data");
