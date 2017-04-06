@@ -181,7 +181,8 @@ namespace LogParser
             catch (Exception e)
             {
             }
-            return "";
+
+            return @"D:\home\LogFiles\php_errors.log";
         }
 
 
