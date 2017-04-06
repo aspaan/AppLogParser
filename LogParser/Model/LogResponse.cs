@@ -12,14 +12,18 @@ namespace LogParser
         public LogResponse()
         {
             LogMetrics = new Dictionary<string, LogMetrics>();
-            Logs = new List<string>();
+            LinkedLogs = new LinkedList<string>();
         }
 
         [DataMember]
         public Dictionary<string,LogMetrics> LogMetrics { get; set; }
 
         [DataMember]
-        public List<string> Logs { get; set; }
+        public List<string> Logs {
+            get { return LinkedLogs.ToList(); }
+        }
+
+        public LinkedList<string> LinkedLogs { get; set; }
 
         [DataMember]
         public string LogFile { get; set; }
@@ -70,6 +74,7 @@ namespace LogParser
         /// </summary>
         public LogMetrics()
         {
+            Solutions = new List<string>();
         }
 
         /// <summary>
@@ -78,6 +83,9 @@ namespace LogParser
         public LogMetrics(List<LogMetric> metricSets)
             : base(metricSets)
         {
+            Solutions = new List<string>();
         }
+
+        public List<string> Solutions { get; set; }
     }
 }

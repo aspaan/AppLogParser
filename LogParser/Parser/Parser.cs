@@ -11,7 +11,7 @@ namespace LogParser
     {
         public abstract Task<LogResponse> GetHistogramAsync(LogParserParameters parameters);
 
-        public long BinarySearchLogFile(Stream stream, DateTime date, long startingOffset, long endingOffSet)
+        public long BinarySearchLogFile(Stream stream, DateTime date, long startingOffset, long endingOffSet, TimeSpan timespan)
         {
             long middle = (endingOffSet - startingOffset) / 2;
             if (middle < 0)
@@ -29,20 +29,20 @@ namespace LogParser
                     var logDate = GetDateFromLog(line);
                     if (logDate != new DateTime())
                     {
-                        var timeSpan = logDate.Subtract(date);
-                        if (timeSpan.Days > 0)
+                        var differenceFromEndDate = logDate.Subtract(date);
+                        if (differenceFromEndDate.TotalMinutes > timespan.TotalMinutes)
                         {
                             var offSet = (startingOffset + prevLine.Length);
-                            return BinarySearchLogFile(stream, date, offSet, (startingOffset + middle));
+                            return BinarySearchLogFile(stream, date, offSet, (startingOffset + middle), timespan);
                         }
-                        if (timeSpan.Days == 0)
+                        if (differenceFromEndDate.TotalMinutes > 0 && differenceFromEndDate.TotalMinutes < timespan.TotalMinutes)
                         {
                             return startingOffset + prevLine.Length;
                         }
-                        if (timeSpan.Days < 0)
+                        if (differenceFromEndDate.TotalMinutes < 0)
                         {
                             var offSet = (startingOffset + middle + prevLine.Length);
-                            return BinarySearchLogFile(stream, date, offSet, endingOffSet);
+                            return BinarySearchLogFile(stream, date, offSet, endingOffSet, timespan);
                         }
                     }
                     prevLine += line;
@@ -72,7 +72,7 @@ namespace LogParser
 
                         if (includeLogs && (logDate != new DateTime() && logDate >= parameters.StartTime && logDate <= parameters.EndTime))
                         {
-                            response.Logs.Add(line);
+                            response.LinkedLogs.AddLast(line);
                         }
 
                         if ((logDate != new DateTime() && logDate >= parameters.EndTime))
@@ -101,7 +101,7 @@ namespace LogParser
 
                 if (includeLogs && (logDate != new DateTime() && logDate >= parameters.StartTime && logDate <= parameters.EndTime))
                 {
-                    response.Logs.Add(line);
+                    response.LinkedLogs.AddFirst(line);
                 }
 
                 i += line.Length;

@@ -36,7 +36,7 @@ namespace LogParser
             long offSet = 0;
             using (Stream stream = File.Open(response.LogFile, FileMode.Open))
             {
-                offSet = BinarySearchLogFile(stream, parameters.EndTime, 0, filesize);
+                offSet = BinarySearchLogFile(stream, parameters.EndTime, 0, filesize, parameters.EndTime.Subtract(parameters.StartTime));
             }
 
             if (offSet == -1)
@@ -47,8 +47,12 @@ namespace LogParser
             }
 
             var logMetricsList = new Dictionary<string, LogMetrics>();
+
             ReadFileInReverseOrder(response.LogFile, offSet, parameters, logMetricsList, response);
             ReadFileInOrder(response.LogFile, offSet, parameters, logMetricsList, response);
+            
+
+
 
             foreach (var category in logMetricsList.Keys)
             {
@@ -80,13 +84,20 @@ namespace LogParser
 
             response.SettingsFileFound = File.Exists(response.SettingsFile);
 
+            if (!response.SettingsFileFound)
+            {
+                response.SettingsFile = Environment.ExpandEnvironmentVariables(@"%HOME%\site\wwwroot\php.ini");
+
+                response.SettingsFileFound = File.Exists(response.SettingsFile);
+            }
+
             if (response.SettingsFileFound)
             {
                 response.LogFile = await GetLogFile(response.SettingsFile);
             }
 
             //overwrite to test locally
-            response.LogFile = @"D:\Home\site\wwwroot\php_errors.log";
+            //response.LogFile = @"D:\Home\site\wwwroot\php_errors.log";
 
             response.LogFileFound = File.Exists(response.LogFile);
 
@@ -154,9 +165,15 @@ namespace LogParser
                 string line;
                 while ((line = await file.ReadLineAsync()) != null)
                 {
-                    if (line.StartsWith("error_log="))
+                    if (line.StartsWith("error_log"))
                     {
-                        return line.Replace("error_log=", "").Replace("\"", "");
+                        line = line.Replace("error_log=", "");
+                        line = line.Replace("error_log = ", "");
+                        line = line.Replace("error_log =", "");
+                        line = line.Replace("error_log= ", "");
+
+                        line = line.Replace("\"", "").Trim();
+                        return line;
                     }
                 }
                 file.Close();
