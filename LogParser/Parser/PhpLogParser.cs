@@ -131,9 +131,21 @@ namespace LogParser
 
         private string GetCategoryFromLog(string line)
         {
+            if (line.ToLower().Contains("has exceeded the "))
+                return "Connections Maxed Out";
+            if (line.ToLower().Contains("server has gone away"))
+                return "MYSQL Server Gone";
+            if (line.ToLower().Contains("maximum execution time of"))
+                return "Time Out";
+            if (line.ToLower().Contains("mysql_connect(): an attempt was made to access a socket in a way forbidden by its access permissions"))
+                return "Access Permission Denied";
+            if (line.ToLower().Contains("out of memory"))
+                return "Out of Memory";
+            if (line.ToLower().Contains("ssl certificate problem, verify that the ca cert is ok"))
+                return "SSSL Certificate Problem";
+
             var dateBracket = line.IndexOf("]");
             var categoryEndIndex = (line.IndexOf(":") > -1) ? line.IndexOf(":") : 40;
-
             return line.Substring(dateBracket + 1, categoryEndIndex - 1).Replace(":", "").Trim();
         }
 
