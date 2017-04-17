@@ -121,5 +121,7 @@ namespace LogParser
 
         public abstract Task<string> GetLogFile(string filePath);
 
+        public abstract Task<EventLogResponse> GetEventLogs(string stack, DateTime startTime, DateTime endTime);
+
     }
 }

@@ -167,7 +167,10 @@ namespace LogParser
             return "";
         }
 
-
+        public override Task<EventLogResponse> GetEventLogs(string stack, DateTime startTime, DateTime endTime)
+        {
+            throw new NotImplementedException();
+        }
     }
 
 }

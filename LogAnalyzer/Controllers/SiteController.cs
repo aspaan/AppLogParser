@@ -48,7 +48,39 @@ namespace LogAnalyzer.Controllers
 
             return await parser.GetHistogramAsync(p);
         }
-        
+
+        //[HttpGet]
+        //[Route("netcore")]
+        //public async Task<NetCoreSettings> Get()
+        //{
+        //    Parser parser = new NetCoreLogParser();
+
+        //    return await parser.DetectNetCore();
+        //}
+
+        [HttpGet]
+        [Route("eventlogs")]
+        public Task<EventLogResponse> Get(string stack = null, string startTime = null, string endTime = null)
+        {
+            DateTime startTimeUtc, endTimeUtc;
+            TimeSpan timeGrainTimeSpan;
+            string errorMessage;
+
+            if (!PrepareStartEndTimeUtc(startTime, endTime, null, out startTimeUtc, out endTimeUtc, out timeGrainTimeSpan, out errorMessage))
+            {
+                if (Request == null)
+                {
+                    throw new WebException(HttpStatusCode.BadRequest.ToString() + ": " + errorMessage);
+                }
+
+                throw new HttpResponseException(Request.CreateErrorResponse(HttpStatusCode.BadRequest, errorMessage));
+            }
+
+            Parser parser = new EventLogParser();
+
+            return parser.GetEventLogs(stack, startTimeUtc, endTimeUtc);
+        }
+
         private static bool PrepareStartEndTimeUtc(string startTime, string endTime, string timeGrain, out DateTime startTimeUtc, out DateTime endTimeUtc, out TimeSpan timeGrainTimeSpan, out string errorMessage)
         {
 
