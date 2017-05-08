@@ -36,7 +36,7 @@ namespace LogParser
             long offSet = 0;
             using (Stream stream = File.Open(response.LogFile, FileMode.Open))
             {
-                offSet = BinarySearchLogFile(stream, parameters.EndTime, 0, filesize);
+                offSet = BinarySearchLogFile(stream, parameters.EndTime, 0, filesize, parameters.EndTime.Subtract(parameters.StartTime));
             }
 
             if (offSet == -1)
@@ -85,8 +85,12 @@ namespace LogParser
                 response.LogFile = await GetLogFile(response.SettingsFile);
             }
 
+            if (!File.Exists(response.LogFile))
+            {
+                response.LogFile = @"D:\Home\site\wwwroot\php_errors.log";
+            }
             //overwrite to test locally
-            response.LogFile = @"D:\Home\site\wwwroot\php_errors.log";
+            //response.LogFile = @"D:\Home\site\wwwroot\php_errors.log";
 
             response.LogFileFound = File.Exists(response.LogFile);
 
@@ -120,10 +124,34 @@ namespace LogParser
 
         private string GetCategoryFromLog(string line)
         {
-            var dateBracket = line.IndexOf("]");
-            var categoryEndIndex = (line.IndexOf(":") > -1) ? line.IndexOf(":") : 40;
-
-            return line.Substring(dateBracket + 1, categoryEndIndex - 1).Replace(":", "").Trim();
+            if (line.ToLower().Contains("has exceeded the "))
+            {
+                return "Connections Maxed Out";
+            }
+            if (line.ToLower().Contains("server has gone away"))
+            {
+                return "MYSQL Server Gone";
+            }
+            if (line.ToLower().Contains("maximum execution time of"))
+            {
+                return "Time Out";
+            }
+            if (line.ToLower().Contains("mysql_connect(): an attempt was made to access a socket in a way forbidden by its access permissions"))
+            {
+                return "Access Permission Denied";
+            }
+            if (line.ToLower().Contains("out of memory") 
+                || (line.ToLower().Contains("allowed memory size of") && line.ToLower().Contains("bytes exhausted")))
+            {
+                return "Out of Memory";
+            }
+            if (line.ToLower().Contains("ssl certificate problem, verify that the ca cert is ok"))
+            {
+                return "SSSL Certificate Problem";
+            }
+            int index = line.IndexOf("]");
+            int num2 = (line.IndexOf(":") > -1) ? line.IndexOf(":") : 40;
+            return line.Substring(index + 1, num2 - 1).Replace(":", "").Trim();
         }
 
         public override DateTime GetDateFromLog(string line)
@@ -154,12 +182,18 @@ namespace LogParser
                 string line;
                 while ((line = await file.ReadLineAsync()) != null)
                 {
-                    if (line.StartsWith("error_log="))
+                    if (line.ToLower().StartsWith("error_log"))
                     {
-                        return line.Replace("error_log=", "").Replace("\"", "");
+                        line = line.Replace("error_log=", "");
+                        line = line.Replace("error_log = ", "");
+                        line = line.Replace("error_log =", "");
+                        line = line.Replace("error_log= ", "");
+                        line = line.Replace("\"", "").Trim();
+                        break;
                     }
                 }
                 file.Close();
+                return line;
             }
             catch (Exception e)
             {

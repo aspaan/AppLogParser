@@ -11,45 +11,43 @@ namespace LogParser
     {
         public abstract Task<LogResponse> GetHistogramAsync(LogParserParameters parameters);
 
-        public long BinarySearchLogFile(Stream stream, DateTime date, long startingOffset, long endingOffSet)
+        public long BinarySearchLogFile(Stream stream, DateTime date, long startingOffset, long endingOffSet, TimeSpan timespan)
         {
-            long middle = (endingOffSet - startingOffset) / 2;
-            if (middle < 0)
+            long middle = (endingOffSet - startingOffset) / 2L;
+            if (middle < 0L)
             {
-                return -1;
+                return -1L;
             }
-
             stream.Seek(startingOffset + middle, SeekOrigin.Begin);
             using (StreamReader reader = new StreamReader(stream))
             {
-                string prevLine = "";
-                while (!reader.EndOfStream)
+                string readLine;
+                for (string str = ""; !reader.EndOfStream; str = str + readLine)
                 {
-                    string line = reader.ReadLine();
-                    var logDate = GetDateFromLog(line);
-                    if (logDate != new DateTime())
+                    readLine = reader.ReadLine();
+                    DateTime dateFromLog = this.GetDateFromLog(readLine);
+                    DateTime time2 = new DateTime();
+                    if (dateFromLog != time2)
                     {
-                        var timeSpan = logDate.Subtract(date);
-                        if (timeSpan.Days > 0)
+                        TimeSpan span = dateFromLog.Subtract(date);
+                        if (span.TotalMinutes > timespan.TotalMinutes)
                         {
-                            var offSet = (startingOffset + prevLine.Length);
-                            return BinarySearchLogFile(stream, date, offSet, (startingOffset + middle));
+                            long offset = startingOffset + str.Length;
+                            return this.BinarySearchLogFile(stream, date, offset, startingOffset + middle, timespan);
                         }
-                        if (timeSpan.Days == 0)
+                        if ((span.TotalMinutes > 0.0) && (span.TotalMinutes < timespan.TotalMinutes))
                         {
-                            return startingOffset + prevLine.Length;
+                            return (startingOffset + str.Length);
                         }
-                        if (timeSpan.Days < 0)
+                        if (span.TotalMinutes < 0.0)
                         {
-                            var offSet = (startingOffset + middle + prevLine.Length);
-                            return BinarySearchLogFile(stream, date, offSet, endingOffSet);
+                            long offset = (startingOffset + middle) + str.Length;
+                            return this.BinarySearchLogFile(stream, date, offset, endingOffSet, timespan);
                         }
                     }
-                    prevLine += line;
                 }
             }
-
-            return 0;
+            return 0L;
         }
 
         public void ReadFileInOrder(string fileName, long offSet, LogParserParameters parameters, Dictionary<string, LogMetrics> logMetricsList, LogResponse response)
