@@ -99,6 +99,7 @@
     <None Include="Properties\PublishProfiles\akgeotest1 - Web Deploy.pubxml" />
     <None Include="Properties\PublishProfiles\akphp - FTP.pubxml" />
     <None Include="Properties\PublishProfiles\akphp - Web Deploy.pubxml" />
+    <None Include="Properties\PublishProfiles\LogAnalyzer.pubxml" />
     <None Include="Web.Debug.config">
       <DependentUpon>Web.config</DependentUpon>
     </None>

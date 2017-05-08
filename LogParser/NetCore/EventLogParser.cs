@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 using System.Xml;
 
@@ -33,10 +34,10 @@ namespace LogParser
         private async Task<Dictionary<string, string>> GetAspNetCore()
         {
             Dictionary<string, string> aspNetCoreSettings = new Dictionary<string, string>();
-            string webConfig = Environment.ExpandEnvironmentVariables(@"%HOME%\site\wwwroot\web.config");
+            //string webConfig = Environment.ExpandEnvironmentVariables(@"%HOME%\site\wwwroot\web.config");
 
             //for local testing
-            //string webConfig= @"d:\temp\netcore\web.config";
+            string webConfig= @"d:\temp\netcore\web.config";
 
             if (!File.Exists(webConfig))
             {
@@ -110,7 +111,8 @@ namespace LogParser
             }
 
             //string stdLogFilesPath = path.StartsWith(".") ? Path.Combine(homeDirectory, path.Substring(2)) : path;
-
+            
+            //for local testing
             string stdLogFilesPath = @"d:\temp\netcore\LogFiles";
 
             if (!String.IsNullOrWhiteSpace(stdLogFilesPath))
@@ -158,16 +160,17 @@ namespace LogParser
 
         public override async Task<EventLogResponse> GetEventLogs(string stack, DateTime startTime, DateTime endTime)
         {
-            string eventLogPath = Environment.ExpandEnvironmentVariables(@"%HOME%\LogFiles\eventlog.xml");
+            //string eventLogPath = Environment.ExpandEnvironmentVariables(@"%HOME%\LogFiles\eventlog.xml");
             
             //for local testing
-            //string eventLogPath = @"d:\temp\netcore\eventlog2.xml";
+            string eventLogPath = @"d:\temp\netcore\eventlog2.xml";
             EventLogResponse eventLogResponse = new EventLogResponse();
             bool aspNetCore = false;
             StringBuilder responseMessage = new StringBuilder();
 
             if (!String.IsNullOrWhiteSpace(stack) && String.Equals(stack, "aspnetcore", StringComparison.InvariantCultureIgnoreCase))
             {
+                aspNetCore = true;
                 eventLogResponse.AdditionalData = await GetAspNetCore();
 
                 string path;
@@ -180,7 +183,6 @@ namespace LogParser
                 {
                     responseMessage.Append("No stdoutLog setting found in web.config;");
                 }
-                aspNetCore = true;
             }
             
             eventLogResponse.EventLogs = new List<EventLog>();
@@ -194,57 +196,73 @@ namespace LogParser
                 return eventLogResponse;
             }
 
-            XmlDocument doc = new XmlDocument();
-            try
+            //when there is a load on the site file eventlog.xml will be in use and we need some retries to load it
+            int i = 0;
+            
+            while (i < 200)
             {
-                doc.Load(eventLogPath);
-                XmlElement root = doc.DocumentElement;
-                XmlNodeList eventNodes = root.ChildNodes;
-
-                foreach (XmlNode node in eventNodes)
+                XmlDocument doc = new XmlDocument();
+                try
                 {
-                    eventDataList = new List<string>();
-                    XmlNode providerNode = node.SelectSingleNode("System/Provider");
-                    XmlNode eventData = node.SelectSingleNode("EventData");
-
-                    if (providerNode != null && providerNode.Attributes["Name"] != null)
+                    using (FileStream fileStream = new FileStream(eventLogPath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite))
                     {
-                        if (aspNetCore && !string.Equals(providerNode.Attributes["Name"].Value, "IIS AspNetCore Module", StringComparison.OrdinalIgnoreCase))
+                        doc.Load(fileStream);
+
+                        XmlElement root = doc.DocumentElement;
+                        XmlNodeList eventNodes = root.ChildNodes;
+
+                        foreach (XmlNode node in eventNodes)
                         {
-                            //skip events from other providers
-                            continue;
-                        }
-                        XmlNode timeCreated = node.SelectSingleNode("System/TimeCreated");
-                        if (timeCreated != null && timeCreated.Attributes["SystemTime"] != null)
-                        {
-                            DateTime.TryParse(timeCreated.Attributes["SystemTime"].Value, out preciseTimeStamp);
-                            preciseTimeStamp = preciseTimeStamp.ToUniversalTime();
-                            if ((startTime != null && preciseTimeStamp <= startTime) || (endTime != null && preciseTimeStamp >= endTime))
+                            eventDataList = new List<string>();
+                            XmlNode providerNode = node.SelectSingleNode("System/Provider");
+                            XmlNode eventData = node.SelectSingleNode("EventData");
+
+                            if (providerNode != null && providerNode.Attributes["Name"] != null)
                             {
-                                //skip events outside of timerange
-                                continue;
+                                if (aspNetCore && !string.Equals(providerNode.Attributes["Name"].Value, "IIS AspNetCore Module", StringComparison.OrdinalIgnoreCase))
+                                {
+                                    //skip events from other providers
+                                    continue;
+                                }
+                                XmlNode timeCreated = node.SelectSingleNode("System/TimeCreated");
+                                if (timeCreated != null && timeCreated.Attributes["SystemTime"] != null)
+                                {
+                                    DateTime.TryParse(timeCreated.Attributes["SystemTime"].Value, out preciseTimeStamp);
+                                    preciseTimeStamp = preciseTimeStamp.ToUniversalTime();
+                                    if ((startTime != null && preciseTimeStamp <= startTime) || (endTime != null && preciseTimeStamp >= endTime))
+                                    {
+                                        //skip events outside of timerange
+                                        continue;
+                                    }
+                                }
+
+                                foreach (XmlNode data in eventData.ChildNodes)
+                                {
+                                    eventDataList.Add(data.InnerText);
+                                }
+
+                                eventLogResponse.EventLogs.Add(new EventLog
+                                {
+                                    PreciseTimeStamp = preciseTimeStamp,
+                                    EventData = new List<string>(eventDataList)
+                                });
+
+                                eventDataList.Clear();
                             }
                         }
-
-                        foreach (XmlNode data in eventData.ChildNodes)
-                        {
-                            eventDataList.Add(data.InnerText);
-                        }
-
-                        eventLogResponse.EventLogs.Add(new EventLog
-                        {
-                            PreciseTimeStamp = preciseTimeStamp,
-                            EventData = new List<string>(eventDataList)
-                        });
-
-                        eventDataList.Clear();
                     }
+                    break;
                 }
-            }
-            catch(Exception ex)
-            {
-                eventLogResponse.ExceptionMessage = ex.Message;
-                return eventLogResponse;
+                catch (IOException)
+                {
+                    i++;
+                    await Task.Delay(100);
+                }
+                catch (Exception ex)
+                {
+                    eventLogResponse.ExceptionMessage = ex.Message;
+                    return eventLogResponse;
+                }
             }
 
             eventLogResponse.ResponseMessage = responseMessage.ToString();

@@ -49,15 +49,6 @@ namespace LogAnalyzer.Controllers
             return await parser.GetHistogramAsync(p);
         }
 
-        //[HttpGet]
-        //[Route("netcore")]
-        //public async Task<NetCoreSettings> Get()
-        //{
-        //    Parser parser = new NetCoreLogParser();
-
-        //    return await parser.DetectNetCore();
-        //}
-
         [HttpGet]
         [Route("eventlogs")]
         public Task<EventLogResponse> Get(string stack = null, string startTime = null, string endTime = null)

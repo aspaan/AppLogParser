@@ -26,6 +26,7 @@ namespace LogParser
         public string ExceptionMessage { get; set; }
     }
 
+    [DataContract]
     public class StdoutLog
     {
         [DataMember]
@@ -41,10 +42,13 @@ namespace LogParser
         public string Path { get; set; }
     }
 
+    [DataContract]
     public class StdoutLogsResponse
     {
+        [DataMember]
         public string ExceptionMessage { get; set; }
 
+        [DataMember]
         public List<StdoutLog> StdOutLogs { get; set; }
     }
 }
