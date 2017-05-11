@@ -149,6 +149,14 @@ namespace LogParser
             {
                 return "SSSL Certificate Problem";
             }
+            if (line.ToLower().Contains("php fatal error: call to undefined method"))
+            {
+                return "Undefined Method";
+            }
+            if (line.ToLower().Contains("php parse error: syntax error "))
+            {
+                return "Syntax Error ";
+            }
             int index = line.IndexOf("]");
             int num2 = (line.IndexOf(":") > -1) ? line.IndexOf(":") : 40;
             return line.Substring(index + 1, num2 - 1).Replace(":", "").Trim();
