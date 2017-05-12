@@ -138,7 +138,7 @@ namespace LogParser
             }
             if (line.ToLower().Contains("mysql_connect(): an attempt was made to access a socket in a way forbidden by its access permissions"))
             {
-                return "Access Permission Denied";
+                return "Socket Permission Denied";
             }
             if (line.ToLower().Contains("out of memory") 
                 || (line.ToLower().Contains("allowed memory size of") && line.ToLower().Contains("bytes exhausted")))
@@ -156,6 +156,10 @@ namespace LogParser
             if (line.ToLower().Contains("php parse error: syntax error "))
             {
                 return "Syntax Error ";
+            }
+            if (line.ToLower().Contains("wordpress database error deadlock found when trying to"))
+            {
+                return "WordPress Database Deadlock";
             }
             int index = line.IndexOf("]");
             int num2 = (line.IndexOf(":") > -1) ? line.IndexOf(":") : 40;
