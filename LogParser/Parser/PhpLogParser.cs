@@ -124,7 +124,7 @@ namespace LogParser
 
         private string GetCategoryFromLog(string line)
         {
-            if (line.ToLower().Contains("has exceeded the "))
+            if (line.ToLower().Contains("has exceeded the"))
             {
                 return "Connections Maxed Out";
             }
@@ -153,7 +153,7 @@ namespace LogParser
             {
                 return "Undefined Method";
             }
-            if (line.ToLower().Contains("php parse error: syntax error "))
+            if (line.ToLower().Contains("syntax error"))
             {
                 return "Syntax Error ";
             }
