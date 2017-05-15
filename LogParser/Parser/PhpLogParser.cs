@@ -48,6 +48,12 @@ namespace LogParser
 
             var logMetricsList = new Dictionary<string, LogMetrics>();
             ReadFileInReverseOrder(response.LogFile, offSet, parameters, logMetricsList, response);
+
+            //doing this because last line is not properly read
+            var offsetLine = response.LinkedLogs.Last();
+            response.LinkedLogs.RemoveLast();
+            offSet = offSet - offsetLine.Length;
+
             ReadFileInOrder(response.LogFile, offSet, parameters, logMetricsList, response);
 
             foreach (var category in logMetricsList.Keys)

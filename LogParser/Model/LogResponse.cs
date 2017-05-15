@@ -12,14 +12,16 @@ namespace LogParser
         public LogResponse()
         {
             LogMetrics = new Dictionary<string, LogMetrics>();
-            Logs = new List<string>();
+            LinkedLogs = new LinkedList<string>();
         }
 
         [DataMember]
         public Dictionary<string,LogMetrics> LogMetrics { get; set; }
 
         [DataMember]
-        public List<string> Logs { get; set; }
+        public List<string> Logs => this.LinkedLogs.ToList<string>();
+
+        public LinkedList<string> LinkedLogs { get; set; }
 
         [DataMember]
         public string LogFile { get; set; }

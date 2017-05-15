@@ -70,7 +70,7 @@ namespace LogParser
 
                         if (includeLogs && (logDate != new DateTime() && logDate >= parameters.StartTime && logDate <= parameters.EndTime))
                         {
-                            response.Logs.Add(line);
+                            response.LinkedLogs.AddLast(line);
                         }
 
                         if ((logDate != new DateTime() && logDate >= parameters.EndTime))
@@ -99,7 +99,7 @@ namespace LogParser
 
                 if (includeLogs && (logDate != new DateTime() && logDate >= parameters.StartTime && logDate <= parameters.EndTime))
                 {
-                    response.Logs.Add(line);
+                    response.LinkedLogs.AddFirst(line);
                 }
 
                 i += line.Length;
