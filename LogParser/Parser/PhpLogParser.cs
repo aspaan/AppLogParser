@@ -50,9 +50,12 @@ namespace LogParser
             ReadFileInReverseOrder(response.LogFile, offSet, parameters, logMetricsList, response);
 
             //doing this because last line is not properly read
-            var offsetLine = response.LinkedLogs.Last();
-            response.LinkedLogs.RemoveLast();
-            offSet = offSet - offsetLine.Length;
+            if (response.LinkedLogs.Count() > 0)
+            {
+                var offsetLine = response.LinkedLogs.Last();
+                response.LinkedLogs.RemoveLast();
+                offSet = offSet - offsetLine.Length;
+            }
 
             ReadFileInOrder(response.LogFile, offSet, parameters, logMetricsList, response);
 
@@ -169,7 +172,10 @@ namespace LogParser
             }
             int index = line.IndexOf("]");
             int num2 = (line.IndexOf(":") > -1) ? line.IndexOf(":") : 40;
-            return line.Substring(index + 1, num2 - 1).Replace(":", "").Trim();
+            if(line.Length >= index+ num2)
+                return line.Substring(index + 1, num2 - 1).Replace(":", "").Trim();
+
+            return "";
         }
 
         public override DateTime GetDateFromLog(string line)
