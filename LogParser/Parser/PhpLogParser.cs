@@ -92,16 +92,15 @@ namespace LogParser
             if (response.SettingsFileFound)
             {
                 response.LogFile = await GetLogFile(response.SettingsFile);
+                if (!File.Exists(response.LogFile))
+                {
+                    response.LogFile = @"D:\home\LogFiles\php_errors.log";
+                }
+                response.LogFileFound = File.Exists(response.LogFile);
             }
-
-            if (!File.Exists(response.LogFile))
-            {
-                response.LogFile = @"D:\home\LogFiles\php_errors.log";
-            }
+            
             //overwrite to test locally
             //response.LogFile = @"D:\Home\site\wwwroot\php_errors.log";
-
-            response.LogFileFound = File.Exists(response.LogFile);
 
             return response;
         }
