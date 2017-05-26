@@ -96,7 +96,7 @@ namespace LogParser
 
             if (!File.Exists(response.LogFile))
             {
-                response.LogFile = @"D:\Home\site\wwwroot\php_errors.log";
+                response.LogFile = @"D:\home\LogFiles\php_errors.log";
             }
             //overwrite to test locally
             //response.LogFile = @"D:\Home\site\wwwroot\php_errors.log";
