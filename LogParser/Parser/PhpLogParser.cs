@@ -101,6 +101,7 @@ namespace LogParser
             
             //overwrite to test locally
             //response.LogFile = @"D:\Home\site\wwwroot\php_errors.log";
+            //response.LogFileFound = File.Exists(response.LogFile);
 
             return response;
         }
@@ -157,7 +158,7 @@ namespace LogParser
             {
                 return "SSSL Certificate Problem";
             }
-            if (line.ToLower().Contains("php fatal error: call to undefined method"))
+            if (line.ToLower().Contains("undefined method"))
             {
                 return "Undefined Method";
             }
@@ -165,7 +166,8 @@ namespace LogParser
             {
                 return "Syntax Error ";
             }
-            if (line.ToLower().Contains("wordpress database error deadlock found when trying to"))
+            if (line.ToLower().Contains("wordpress database error deadlock found when trying to")
+                || line.ToLower().Contains("error deadlock found when trying to get lock"))
             {
                 return "WordPress Database Deadlock";
             }

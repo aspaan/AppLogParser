@@ -30,6 +30,11 @@ namespace LogParser
                     if (dateFromLog != time2)
                     {
                         TimeSpan span = dateFromLog.Subtract(date);
+                        double totalMinutes = Math.Abs(span.TotalMinutes);
+                        if ((totalMinutes < timespan.TotalMinutes))
+                        {
+                            return (startingOffset + str.Length);
+                        }
                         if (span.TotalMinutes > timespan.TotalMinutes)
                         {
                             long offset = startingOffset + str.Length;
