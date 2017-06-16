@@ -3,6 +3,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Net.Sockets;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -20,7 +21,11 @@ namespace LogParser
         private long _position;
 
         private readonly Func<long, byte, bool> characterStartDetector;
-        
+
+        public long OffSet {
+            get { return _position; }
+        }
+
         public ReverseLineReader(string filename, long position)
         {
             _streamSource = () => File.OpenRead(filename);

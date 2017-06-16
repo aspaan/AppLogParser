@@ -13,10 +13,14 @@ namespace LogParser
         {
             LogMetrics = new Dictionary<string, LogMetrics>();
             LinkedLogs = new LinkedList<string>();
+            ExceptionCount = new Dictionary<string, int>();
         }
 
         [DataMember]
         public Dictionary<string,LogMetrics> LogMetrics { get; set; }
+
+        [DataMember]
+        public Dictionary<string, int> ExceptionCount { get; set; }
 
         [DataMember]
         public List<string> Logs => this.LinkedLogs.ToList<string>();

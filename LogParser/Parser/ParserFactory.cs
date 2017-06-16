@@ -15,6 +15,11 @@ namespace LogParser
             {
                 case "php":
                     parser = new PhpLogParser();
+                    parser.SingleLineLog = true;
+                    break;
+                case "node":
+                    parser = new NodeJSLogParser();
+                    parser.SingleLineLog = false;
                     break;
             }
             return parser;

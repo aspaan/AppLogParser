@@ -11,12 +11,12 @@ namespace LogParser
 {
     public class EventLogParser : Parser
     {
-        public override DateTime GetDateFromLog(string line)
+        public override async Task<LogResponse> FindAndSetLoggingFileAndCreateResponseObject()
         {
             throw new NotImplementedException();
         }
 
-        public override Task<LogResponse> GetHistogramAsync(LogParserParameters parameters)
+        public override DateTime GetDateFromLog(string line)
         {
             throw new NotImplementedException();
         }
@@ -26,7 +26,12 @@ namespace LogParser
             throw new NotImplementedException();
         }
 
-        public override DateTime GetMetricFromLine(string line, LogParserParameters parameters, Dictionary<string, LogMetrics> logMetricsList)
+        public override void GetMetricFromLine(DateTime date, string line, LogParserParameters parameters, Dictionary<string, LogMetrics> logMetricsList)
+        {
+            throw new NotImplementedException();
+        }
+
+        public override string RemoveDateFromLog(string line)
         {
             throw new NotImplementedException();
         }
