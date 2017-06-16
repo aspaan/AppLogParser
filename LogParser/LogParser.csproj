@@ -44,6 +44,7 @@
     <Compile Include="NetCore\EventLog.cs" />
     <Compile Include="NetCore\EventLogResponse.cs" />
     <Compile Include="NetCore\EventLogParser.cs" />
+    <Compile Include="Parser\NodeJSLogParser.cs" />
     <Compile Include="Parser\Parser.cs" />
     <Compile Include="Parser\ParserFactory.cs" />
     <Compile Include="ReverseLineReader.cs" />

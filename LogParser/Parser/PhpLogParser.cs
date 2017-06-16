@@ -15,73 +15,7 @@ namespace LogParser
     public class PhpLogParser: Parser
     {
 
-        public async override Task<LogResponse> GetHistogramAsync(LogParserParameters parameters)
-        {
-            Stopwatch sw = new Stopwatch();
-            sw.Start();
-
-            var response = await FindAndSetLoggingFileAndCreateResponseObject();
-            response.Parameters = parameters;
-
-            if (!response.LogFileFound)
-            {
-                sw.Stop();
-                response.ParseTime = sw.ElapsedMilliseconds;
-                return response;
-            }
-
-            FileInfo fileInfo = new FileInfo(response.LogFile);
-            long filesize = fileInfo.Length;
-
-            long offSet = 0;
-            using (Stream stream = File.Open(response.LogFile, FileMode.Open))
-            {
-                offSet = BinarySearchLogFile(stream, parameters.EndTime, 0, filesize, parameters.EndTime.Subtract(parameters.StartTime));
-            }
-
-            if (offSet == -1)
-            {
-                sw.Stop();
-                response.ParseTime = sw.ElapsedMilliseconds;
-                return response;
-            }
-
-            var logMetricsList = new Dictionary<string, LogMetrics>();
-            ReadFileInReverseOrder(response.LogFile, offSet, parameters, logMetricsList, response);
-
-            //doing this because last line is not properly read
-            if (response.LinkedLogs.Count() > 0)
-            {
-                var offsetLine = response.LinkedLogs.Last();
-                response.LinkedLogs.RemoveLast();
-                offSet = offSet - offsetLine.Length;
-            }
-
-            ReadFileInOrder(response.LogFile, offSet, parameters, logMetricsList, response);
-
-            foreach (var category in logMetricsList.Keys)
-            {
-                var logCatgeorMetrics = new LogMetrics();
-
-                logCatgeorMetrics.AddRange(from dt in logMetricsList[category]
-                                           group dt by dt.Timestamp.Ticks / parameters.TimeGrain.Ticks
-            into g
-                                           select
-                                               new LogMetric(Util.GetDateTimeInUtcFormat(new DateTime(g.Key * parameters.TimeGrain.Ticks)), g.ToList().Count));
-
-                logCatgeorMetrics.Sort((x, y) => x.Timestamp.CompareTo(y.Timestamp));
-
-                response.LogMetrics.Add(category, logCatgeorMetrics);
-
-            }
-
-
-            sw.Stop();
-            response.ParseTime = sw.ElapsedMilliseconds;
-            return response;
-        }
-
-        private async Task<LogResponse> FindAndSetLoggingFileAndCreateResponseObject()
+        public override async Task<LogResponse> FindAndSetLoggingFileAndCreateResponseObject()
         {
             var response = new LogResponse();
 
@@ -98,7 +32,7 @@ namespace LogParser
                 }
                 response.LogFileFound = File.Exists(response.LogFile);
             }
-            
+
             //overwrite to test locally
             //response.LogFile = @"D:\Home\site\wwwroot\php_errors.log";
             //response.LogFileFound = File.Exists(response.LogFile);
@@ -106,13 +40,8 @@ namespace LogParser
             return response;
         }
 
-        public override DateTime GetMetricFromLine(string line, LogParserParameters parameters, Dictionary<string, LogMetrics> logMetricsList)
+        public override void GetMetricFromLine(DateTime date, string line, LogParserParameters parameters, Dictionary<string, LogMetrics> logMetricsList)
         {
-            DateTime date = GetDateFromLog(line);
-
-            if (date < parameters.StartTime || date > parameters.EndTime)
-                return date;
-
             var category = GetCategoryFromLog(line);
 
             var metric = new LogMetric(date, 1);
@@ -127,8 +56,6 @@ namespace LogParser
                 newMetricSet.Add(metric);
                 logMetricsList.Add(category, newMetricSet);
             }
-
-            return metric.Timestamp;
         }
 
         private string GetCategoryFromLog(string line)
@@ -173,8 +100,15 @@ namespace LogParser
             }
             int index = line.IndexOf("]");
             int num2 = (line.IndexOf(":") > -1) ? line.IndexOf(":") : 40;
-            if(line.Length >= index+ num2)
-                return line.Substring(index + 1, num2 - 1).Replace(":", "").Trim();
+            if (line.Length >= index + num2)
+            {
+                var str = line.Substring(index + 1, num2).Replace(":", "").Trim();
+                //if (str.EndsWith("ic"))
+                //{
+                //    Console.WriteLine(str);
+                //}
+                return str;
+            }
 
             return "";
         }
@@ -196,6 +130,15 @@ namespace LogParser
                 return TimeZoneInfo.ConvertTime(apiDate, tzi);
 
             return TimeZoneInfo.ConvertTimeToUtc(apiDate, tzi);
+        }
+
+        public override string RemoveDateFromLog(string line)
+        {
+            var dateBracket = line.IndexOf("]");
+            if (dateBracket > 0)
+                return line.Substring(dateBracket+1);
+
+            return line;
         }
 
         public override async Task<string> GetLogFile(string filePath)
