@@ -39,10 +39,10 @@ namespace LogParser
         private async Task<Dictionary<string, string>> GetAspNetCore()
         {
             Dictionary<string, string> aspNetCoreSettings = new Dictionary<string, string>();
-            //string webConfig = Environment.ExpandEnvironmentVariables(@"%HOME%\site\wwwroot\web.config");
+            string webConfig = Environment.ExpandEnvironmentVariables(@"%HOME%\site\wwwroot\web.config");
 
             //for local testing
-            string webConfig= @"d:\temp\netcore\web.config";
+            //string webConfig= @"d:\temp\netcore\web.config";
 
             if (!File.Exists(webConfig))
             {
@@ -106,7 +106,7 @@ namespace LogParser
 
         private async Task<StdoutLogsResponse> GetStdoutLogs(string path, DateTime startTime, DateTime endTime)
         {
-            //string homeDirectory = Environment.ExpandEnvironmentVariables(@"%HOME%\site\wwwroot\");
+            string homeDirectory = Environment.ExpandEnvironmentVariables(@"%HOME%\site\wwwroot\");
             StdoutLogsResponse res = new StdoutLogsResponse();
 
             if (!path.EndsWith(@"\"))
@@ -115,10 +115,10 @@ namespace LogParser
                 path = path.Substring(0, idx);
             }
 
-            //string stdLogFilesPath = path.StartsWith(".") ? Path.Combine(homeDirectory, path.Substring(2)) : path;
+            string stdLogFilesPath = path.StartsWith(".") ? Path.Combine(homeDirectory, path.Substring(2)) : path;
             
             //for local testing
-            string stdLogFilesPath = @"d:\temp\netcore\LogFiles";
+            //string stdLogFilesPath = @"d:\temp\netcore\LogFiles";
 
             if (!String.IsNullOrWhiteSpace(stdLogFilesPath))
             {
@@ -165,10 +165,10 @@ namespace LogParser
 
         public override async Task<EventLogResponse> GetEventLogs(string stack, DateTime startTime, DateTime endTime)
         {
-            //string eventLogPath = Environment.ExpandEnvironmentVariables(@"%HOME%\LogFiles\eventlog.xml");
-            
+            string eventLogPath = Environment.ExpandEnvironmentVariables(@"%HOME%\LogFiles\eventlog.xml");
+
             //for local testing
-            string eventLogPath = @"d:\temp\netcore\eventlog2.xml";
+            //string eventLogPath = @"d:\temp\netcore\eventlog2.xml";
             EventLogResponse eventLogResponse = new EventLogResponse();
             bool aspNetCore = false;
             StringBuilder responseMessage = new StringBuilder();
@@ -204,7 +204,7 @@ namespace LogParser
             //when there is a load on the site file eventlog.xml will be in use and we need some retries to load it
             int i = 0;
             
-            while (i < 200)
+            while (i < 100)
             {
                 XmlDocument doc = new XmlDocument();
                 try
