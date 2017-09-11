@@ -72,6 +72,14 @@ namespace LogAnalyzer.Controllers
             return parser.GetEventLogs(stack, startTimeUtc, endTimeUtc);
         }
 
+        [HttpGet]
+        [Route("logging")]
+        public Task<List<string>> Get(string stack = null, bool enable = true)
+        {
+            var le = new LogEnabler();
+            return le.EnableLogging(stack);
+        }
+
         private static bool PrepareStartEndTimeUtc(string startTime, string endTime, string timeGrain, out DateTime startTimeUtc, out DateTime endTimeUtc, out TimeSpan timeGrainTimeSpan, out string errorMessage)
         {
 
