@@ -11,19 +11,73 @@ namespace LogAnalyzer.Controllers
 {
     public class LogEnabler
     {
-        public async Task<List<string>> EnableLogging(string stack)
+        public async Task<List<string>> EnableLogging(string stack, bool enable)
         {
 
             switch (stack.ToLower())
             {
                 case "php":
                 default:
-                    return await EnablePHPLoging();
+                    return await EnablePHPLoging(enable);
                     
             }
         }
 
-        private async Task<List<string>> EnablePHPLoging()
+        public async Task<bool> IsEnabled(string stack)
+        {
+
+            switch (stack.ToLower())
+            {
+                case "php":
+                default:
+                    return await IsPhpEnabled();
+
+            }
+        }
+
+        private async Task<bool> IsPhpEnabled()
+        {
+
+            //for .user.ini
+            var settingsFileDir = Environment.ExpandEnvironmentVariables(@"%HOME%\site\wwwroot\");
+
+            var settingsFileName = ".user.ini";
+            var settingsFile = Path.Combine(settingsFileDir, settingsFileName);
+            var setting = "log_errors";
+
+            if (File.Exists(settingsFile))
+            {
+                var lineNumber = ContainsSettings(settingsFile, setting);
+                if (lineNumber > -1)
+                {
+                    string[] arrLine = File.ReadAllLines(settingsFile);
+                    var userIniSettingEnabled =  (arrLine[lineNumber].ToLower().Replace(" ", "") == "log_errors=on");
+
+                    //for word press sites
+                    settingsFileName = "wp-config.php";
+                    settingsFile = Path.Combine(settingsFileDir, settingsFileName);
+                    setting = "define('WP_DEBUG'";
+
+                    if (!File.Exists(settingsFile))
+                    {
+                        return userIniSettingEnabled;
+                    }
+
+                    lineNumber = ContainsSettings(settingsFile, setting);
+                    if (lineNumber > -1)
+                    {
+                        arrLine = File.ReadAllLines(settingsFile);
+                        var wordPressEnabled = (arrLine[lineNumber].ToLower().Replace(" ", "") == "define('wp_debug',true);");
+                        return userIniSettingEnabled && wordPressEnabled;
+                    }
+                }
+
+                return false;
+            }
+            return false;
+        }
+
+        private async Task<List<string>> EnablePHPLoging(bool enable)
         {
             List<string> log = new List<string>(); ;
 
@@ -32,10 +86,10 @@ namespace LogAnalyzer.Controllers
 
             var settingsFileName = ".user.ini";
             var settingsFile = Path.Combine(settingsFileDir, settingsFileName);
-            var settingString = "log_errors=On";
+            var settingString = enable?"log_errors=On": "log_errors=Off";
             var setting = "log_errors";
 
-            if (!File.Exists(settingsFile))
+            if (!File.Exists(settingsFile) && enable)
             {
                 CreateSettingsFile(settingsFile, settingString);
                 log.Add(string.Format("Created the setting file {0} with the following setting: {1}", settingsFileName, settingString));
@@ -48,7 +102,7 @@ namespace LogAnalyzer.Controllers
             //for word press sites
             settingsFileName = "wp-config.php";
             settingsFile = Path.Combine(settingsFileDir, settingsFileName);
-            settingString = "define('WP_DEBUG', true);";
+            settingString = "define('WP_DEBUG', "+ enable.ToString().ToLower() + ");";
             setting = "define('WP_DEBUG'";
 
             if (File.Exists(settingsFile))

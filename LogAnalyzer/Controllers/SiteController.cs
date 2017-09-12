@@ -77,7 +77,15 @@ namespace LogAnalyzer.Controllers
         public Task<List<string>> Get(string stack = null, bool enable = true)
         {
             var le = new LogEnabler();
-            return le.EnableLogging(stack);
+            return le.EnableLogging(stack, enable);
+        }
+
+        [HttpGet]
+        [Route("loggingenabled")]
+        public Task<bool> Get(string stack = null)
+        {
+            var le = new LogEnabler();
+            return le.IsEnabled(stack);
         }
 
         private static bool PrepareStartEndTimeUtc(string startTime, string endTime, string timeGrain, out DateTime startTimeUtc, out DateTime endTimeUtc, out TimeSpan timeGrainTimeSpan, out string errorMessage)
