@@ -7,7 +7,7 @@ using System.IO;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace LogAnalyzer.Controllers
+namespace LogParser
 {
     public class LogEnabler
     {
