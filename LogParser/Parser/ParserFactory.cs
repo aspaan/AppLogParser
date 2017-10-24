@@ -15,11 +15,21 @@ namespace LogParser
             {
                 case "php":
                     parser = new PhpLogParser();
-                    parser.SingleLineLog = true;
                     break;
                 case "node":
                     parser = new NodeJSLogParser();
-                    parser.SingleLineLog = false;
+                    break;
+            }
+            return parser;
+        }
+
+        public static Parser GetLinuxParser(string stack)
+        {
+            Parser parser = null;
+            switch (stack.ToLower())
+            {
+                case "php":
+                    parser = new PhpLogParserLinux();
                     break;
             }
             return parser;

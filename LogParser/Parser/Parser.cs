@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -10,8 +11,6 @@ namespace LogParser
 {
     public abstract class Parser
     {
-        public bool SingleLineLog { get; set;  }
-
         public async Task<LogResponse> GetHistogramAsync(LogParserParameters parameters)
         {
             Stopwatch sw = new Stopwatch();
@@ -63,8 +62,7 @@ namespace LogParser
                 response.LogMetrics.Add(category, logCatgeorMetrics);
 
             }
-
-
+            
             sw.Stop();
 
             response.ExceptionCount = response.ExceptionCount.OrderByDescending(x => x.Value).ToDictionary(x => x.Key, x => x.Value);
@@ -84,56 +82,37 @@ namespace LogParser
                 stream.Seek(offSet, SeekOrigin.Begin);
                 using (StreamReader reader = new StreamReader(stream))
                 {
-                    string exceptionStr = "";
+                    string prevLine = "";
                     bool first = true;
                     var prevDate = new DateTime();
+                    var logDate = new DateTime();
                     while (!reader.EndOfStream)
                     {
                         string line = reader.ReadLine();
                         i += line.Length;
 
-                        var logDate = GetDateFromLog(line);
+                        logDate = GetDateFromLog(line);
                         
                         if (logDate != new DateTime())
                         {
-                            if (!string.IsNullOrEmpty(exceptionStr))
+                            if (!string.IsNullOrEmpty(prevLine))
                             {
-                                if (logDate > parameters.StartTime && logDate <= parameters.EndTime)
-                                {
-                                    var dateLessExceptionStr = RemoveDateFromLog(exceptionStr).Trim();
+                                AddLogsToResponse(prevDate, prevLine, includeLogs, parameters, logMetricsList, response);
 
-                                    if (prevDate >= parameters.StartTime && prevDate <= parameters.EndTime)
-                                    {
-                                        GetMetricFromLine(prevDate, dateLessExceptionStr, parameters, logMetricsList);
-
-                                        if (!response.ExceptionCount.ContainsKey(dateLessExceptionStr))
-                                            response.ExceptionCount.Add(dateLessExceptionStr, 0);
-
-                                        response.ExceptionCount[dateLessExceptionStr] += 1;
-
-                                        if (includeLogs)
-                                        {
-                                            response.LinkedLogs.AddLast(exceptionStr);
-                                        }
-                                    }
-                                }
-
-                                exceptionStr = line;
+                                prevLine = line;
                             }
                             if (first)
                             {
-                                exceptionStr = line;
+                                prevLine = line;
                                 first = false;
                             }
                             prevDate = logDate;
                         }
                         else
                         {
-                            if(!SingleLineLog && !first)
-                                exceptionStr = exceptionStr + Environment.NewLine + line; ;
+                            if(!first)
+                                prevLine = prevLine + Environment.NewLine + line; ;
                         }
-
-                        
 
                         if ((logDate != new DateTime() && logDate > parameters.EndTime))
                         {
@@ -141,24 +120,50 @@ namespace LogParser
                         }
 
                     }
+
+                    //reached the end of the file try last line
+                    AddLogsToResponse(prevDate, prevLine, includeLogs, parameters, logMetricsList, response);
                 }
             }
 
             response.DataScanned += i;
         }
 
+        private void AddLogsToResponse(DateTime prevDate, string prevLine, bool includeLogs,
+            LogParserParameters parameters, Dictionary<string, LogMetrics> logMetricsList, LogResponse response)
+        {
+            var dateLessExceptionStr = RemoveDateFromLog(prevLine).Trim();
+
+            if (prevDate >= parameters.StartTime && prevDate <= parameters.EndTime)
+            {
+                GetMetricFromLine(prevDate, dateLessExceptionStr, parameters, logMetricsList);
+
+                if (!response.ExceptionCount.ContainsKey(dateLessExceptionStr))
+                    response.ExceptionCount.Add(dateLessExceptionStr, 0);
+
+                response.ExceptionCount[dateLessExceptionStr] += 1;
+
+                if (includeLogs)
+                {
+                    response.LinkedLogs.AddLast(prevLine);
+                }
+            }
+            
+        }
         public long ReadFileInReverseOrder(string fileName, long offSet, LogParserParameters parameters, LogResponse response)
         {
             ReverseLineReader reader = new ReverseLineReader(fileName, offSet);
             long i = 0;
+            long lastOffset = 0;
             foreach (var line in reader)
             {
                 DateTime date = GetDateFromLog(line);
                 i += line.Length;
                 if ((date != new DateTime() && date <= parameters.StartTime))
                 {
-                    return reader.OffSet;
+                    return reader.OffSet - line.Length;
                 }
+
             }
 
             response.DataScanned += i;

@@ -12,5 +12,13 @@ namespace LogParser
         public DateTime EndTime { get; set; }
 
         public TimeSpan TimeGrain { get; set; }
+
+        public WorkerType WorkerType { get; set; }
+    }
+
+    public enum WorkerType
+    {
+        Windows=1,
+        Linux=2
     }
 }

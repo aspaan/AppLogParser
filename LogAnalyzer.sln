@@ -7,6 +7,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "LogAnalyzer", "LogAnalyzer\
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "LogParser", "LogParser\LogParser.csproj", "{5B00C077-D080-4B34-AF07-1A9EE2E61141}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "LogConsole", "LogConsole\LogConsole.csproj", "{CE9F9728-37B0-4F56-BFC8-3465E3EE737D}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -21,6 +23,10 @@ Global
 		{5B00C077-D080-4B34-AF07-1A9EE2E61141}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{5B00C077-D080-4B34-AF07-1A9EE2E61141}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{5B00C077-D080-4B34-AF07-1A9EE2E61141}.Release|Any CPU.Build.0 = Release|Any CPU
+		{CE9F9728-37B0-4F56-BFC8-3465E3EE737D}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{CE9F9728-37B0-4F56-BFC8-3465E3EE737D}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{CE9F9728-37B0-4F56-BFC8-3465E3EE737D}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{CE9F9728-37B0-4F56-BFC8-3465E3EE737D}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
