@@ -1,43 +1,23 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Globalization;
-using System.IO;
 using System.Linq;
 using System.Net;
-using System.Net.Http;
+using System.Text;
 using System.Threading.Tasks;
-using System.Web.Http;
-using System.Web.UI.WebControls;
 using LogParser;
 
-namespace LogAnalyzer.Controllers
+namespace LogConsole
 {
-    [RoutePrefix("log")]
-    public class SiteController : ApiController
+    class Program
     {
-        // GET: api/Site
-        [HttpGet]
-        [Route("histogram")]
-        public async Task<LogResponse> Get(string stack, string startTime = null, string endTime = null, string timeGrain = null)
+        static void Main(string[] args)
         {
-            return await Get(stack, WorkerType.Windows, startTime, endTime, timeGrain);
+            var result = Get("php",WorkerType.Windows, "2017-10-18T20:43:56.000Z", "2017-10-18T20:58:56.000Z");
+            Console.WriteLine(result.Logs);
         }
 
-        [HttpGet]
-        [Route("linux/histogram")]
-        public async Task<LogResponse> GetLinux(string stack, string startTime = null, string endTime = null, string timeGrain = null)
-        {
-            return await Get(stack, WorkerType.Linux, startTime, endTime, timeGrain);
-        }
-
-        [HttpGet]
-        [Route("windows/histogram")]
-        public async Task<LogResponse> GetWindows(string stack, string startTime = null, string endTime = null, string timeGrain = null)
-        {
-            return await Get(stack, WorkerType.Windows, startTime, endTime, timeGrain);
-        }
-
-        private async Task<LogResponse> Get(string stack, WorkerType workerType, string startTime = null, string endTime = null, string timeGrain = null)
+        private static LogResponse Get(string stack, WorkerType workerType, string startTime = null, string endTime = null, string timeGrain = null)
         {
             DateTime startTimeUtc, endTimeUtc;
             TimeSpan timeGrainTimeSpan;
@@ -45,12 +25,7 @@ namespace LogAnalyzer.Controllers
 
             if (!PrepareStartEndTimeUtc(startTime, endTime, timeGrain, out startTimeUtc, out endTimeUtc, out timeGrainTimeSpan, out errorMessage))
             {
-                if (Request == null)
-                {
-                    throw new WebException(HttpStatusCode.BadRequest.ToString() + ": " + errorMessage);
-                }
-
-                throw new HttpResponseException(Request.CreateErrorResponse(HttpStatusCode.BadRequest, errorMessage));
+                throw new WebException(HttpStatusCode.BadRequest.ToString() + ": " + errorMessage);
             }
 
             LogParserParameters p = new LogParserParameters();
@@ -58,56 +33,15 @@ namespace LogAnalyzer.Controllers
             p.EndTime = endTimeUtc;
             p.TimeGrain = timeGrainTimeSpan;
             p.WorkerType = workerType;
-            
-            var parser = workerType == WorkerType.Windows ? ParserFactory.GetParser(stack) : ParserFactory.GetLinuxParser(stack);
+
+            Parser parser = ParserFactory.GetParser(stack);
 
             if (parser == null)
             {
                 throw new WebException("Stack " + stack + " has no log parser implimintation");
             }
 
-            return await parser.GetHistogramAsync(p);
-        }
-
-
-
-        [HttpGet]
-        [Route("eventlogs")]
-        public Task<EventLogResponse> Get(string stack = null, string startTime = null, string endTime = null)
-        {
-            DateTime startTimeUtc, endTimeUtc;
-            TimeSpan timeGrainTimeSpan;
-            string errorMessage;
-
-            if (!PrepareStartEndTimeUtc(startTime, endTime, null, out startTimeUtc, out endTimeUtc, out timeGrainTimeSpan, out errorMessage))
-            {
-                if (Request == null)
-                {
-                    throw new WebException(HttpStatusCode.BadRequest.ToString() + ": " + errorMessage);
-                }
-
-                throw new HttpResponseException(Request.CreateErrorResponse(HttpStatusCode.BadRequest, errorMessage));
-            }
-
-            Parser parser = new EventLogParser();
-
-            return parser.GetEventLogs(stack, startTimeUtc, endTimeUtc);
-        }
-
-        [HttpPut]
-        [Route("enablelogging")]
-        public Task<List<string>> Get(string stack = null, bool enable = true)
-        {
-            var le = new LogEnabler();
-            return le.EnableLogging(stack, enable);
-        }
-
-        [HttpGet]
-        [Route("loggingenabled")]
-        public Task<bool> Get(string stack = null)
-        {
-            var le = new LogEnabler();
-            return le.IsEnabled(stack);
+            return parser.GetHistogramAsync(p).Result;
         }
 
         private static bool PrepareStartEndTimeUtc(string startTime, string endTime, string timeGrain, out DateTime startTimeUtc, out DateTime endTimeUtc, out TimeSpan timeGrainTimeSpan, out string errorMessage)
@@ -132,7 +66,7 @@ namespace LogAnalyzer.Controllers
                 else
                 {
                     timeGrainTimeSpan = TimeSpan.FromMinutes(5);
-                    errorMessage = "Invalid time grain: "+timeGrain;
+                    errorMessage = "Invalid time grain: " + timeGrain;
                 }
             }
 
@@ -187,7 +121,7 @@ namespace LogAnalyzer.Controllers
             return true;
         }
 
-        private static bool ParseDateTimeParameter( string parameterValue, DateTime defaultValue, out DateTime dateObj)
+        private static bool ParseDateTimeParameter(string parameterValue, DateTime defaultValue, out DateTime dateObj)
         {
             dateObj = defaultValue;
             if (!string.IsNullOrEmpty(parameterValue))
@@ -215,6 +149,5 @@ namespace LogAnalyzer.Controllers
 
             return dateTime.ToUniversalTime();
         }
-
     }
 }

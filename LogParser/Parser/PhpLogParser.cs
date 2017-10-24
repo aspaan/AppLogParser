@@ -19,12 +19,12 @@ namespace LogParser
         {
             var response = new LogResponse();
             LogEnabler le = new LogEnabler();
-            var logsEnabled = await le.IsEnabled("php");
-            if (!logsEnabled)
-            {
-                response.LogFileFound = false;
-                return response;
-            }
+            //var logsEnabled = await le.IsEnabled("php");
+            //if (!logsEnabled)
+            //{
+            //    response.LogFileFound = false;
+            //    return response;
+            //}
 
             response.LoggingEnabled = true;
             response.SettingsFileFound = true;
@@ -38,11 +38,11 @@ namespace LogParser
                 response.LogFile = @"D:\home\LogFiles\php_errors.log";
             }
             response.LogFileFound = File.Exists(response.LogFile);
-            
+
 
             //overwrite to test locally
-            //response.LogFile = @"D:\Home\site\wwwroot\php_errors.log";
-            //response.LogFileFound = File.Exists(response.LogFile);
+            response.LogFile = @"D:\Home\site\wwwroot\php_errors.log";
+            response.LogFileFound = File.Exists(response.LogFile);
 
             return response;
         }
