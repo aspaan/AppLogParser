@@ -1,8 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+using System.IO;
+using NodaTime;
 
 namespace LogParser
 {
@@ -19,6 +18,11 @@ namespace LogParser
         }
         public static TimeZoneInfo OlsonTimeZoneToTimeZoneInfo(string olsonTimeZoneId)
         {
+            Util.WriteLog("OlsonTimeZoneToTimeZoneInfo(string olsonTimeZoneId)");
+            Util.WriteLog(olsonTimeZoneId);
+
+            var tzi = DateTimeZoneProviders.Tzdb[olsonTimeZoneId];
+
             var olsonWindowsTimes = new Dictionary<string, string>()
             {
                 { "Africa/Bangui", "W. Central Africa Standard Time" },
@@ -150,11 +154,56 @@ namespace LogParser
             var windowsTimeZone = default(TimeZoneInfo);
             if (olsonWindowsTimes.TryGetValue(olsonTimeZoneId, out windowsTimeZoneId))
             {
-                try { windowsTimeZone = TimeZoneInfo.FindSystemTimeZoneById(windowsTimeZoneId); }
-                catch (TimeZoneNotFoundException) { }
-                catch (InvalidTimeZoneException) { }
+                Util.WriteLog("windowsTimeZoneId "+ windowsTimeZoneId);
+                try
+                {
+                    windowsTimeZone = TimeZoneInfo.FindSystemTimeZoneById(windowsTimeZoneId);
+                }
+                catch (TimeZoneNotFoundException tz)
+                {
+                    Util.WriteLog(tz.Message);
+                    Util.WriteLog(tz.StackTrace);
+                    return TimeZoneInfo.Local;
+                }
+                catch (InvalidTimeZoneException it)
+                {
+                    Util.WriteLog(it.Message);
+                    Util.WriteLog(it.StackTrace);
+                    return TimeZoneInfo.Local;
+                }
+                catch (Exception ex)
+                {
+                    Util.WriteLog(ex.Message);
+                    Util.WriteLog(ex.StackTrace);
+                    return TimeZoneInfo.Local;
+                }
             }
             return windowsTimeZone;
+        }
+        
+        public static DateTime ConvertToUtcForLinux(DateTime dateTime, string tzi)
+        {
+            Util.WriteLog("ConvertToUtcForLinux");
+            try
+            {
+                var timeZone = DateTimeZoneProviders.Tzdb[tzi];
+                var instant = Instant.FromDateTimeOffset(dateTime);
+                var zdt = instant.InZone(timeZone);
+                var dt = zdt.ToDateTimeUtc();
+                return dt;
+            }
+            catch (Exception ex)
+            {
+                Util.WriteLog(ex.StackTrace);
+            }
+            return new DateTime();
+        }
+
+        public static void WriteLog(string line)
+        {
+            //string logFile = @"/home/LogFiles/kudu/httpd/sitelog.txt";
+            //File.AppendAllText(logFile, "\r\n" + DateTime.Now + ": " + line);
+            ////Console.WriteLine(line);
         }
     }
 }

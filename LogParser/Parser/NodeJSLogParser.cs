@@ -25,6 +25,12 @@ namespace LogParser
                 response.LogFile = @"D:\home\LogFiles\Application\logging-errors.txt";
                 response.LogFileFound = File.Exists(response.LogFile);
             }
+            else
+            {
+                response.LogFile = @"D:\home\LogFiles\Application\logging-errors.txt";
+                response.LogFileFound = File.Exists(response.LogFile);
+                response.SettingsFileFound = response.LogFileFound;
+            }
 
             //overwrite to test locally
             //response.LogFile = @"D:\Home\site\wwwroot\logging-errors.txt";
@@ -61,7 +67,7 @@ namespace LogParser
             return "";
         }
 
-        public override DateTime GetDateFromLog(string line)
+        public override DateTime GetDateFromLog(string line, LogParserParameters parameters)
         {
             var dateBracket = line.IndexOf("(");
             if (!line.Contains("GMT") || dateBracket == -1)

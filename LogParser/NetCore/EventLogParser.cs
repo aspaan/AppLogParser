@@ -16,7 +16,7 @@ namespace LogParser
             throw new NotImplementedException();
         }
 
-        public override DateTime GetDateFromLog(string line)
+        public override DateTime GetDateFromLog(string line, LogParserParameters parameters)
         {
             throw new NotImplementedException();
         }

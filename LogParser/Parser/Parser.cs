@@ -11,8 +11,10 @@ namespace LogParser
 {
     public abstract class Parser
     {
+        private static string _LogFile = @"/home/LogFiles/kudu/httpd/sitelog.txt";
         public async Task<LogResponse> GetHistogramAsync(LogParserParameters parameters)
         {
+            Util.WriteLog( DateTime.Now+": "+ "GetHistogramAsync(LogParserParameters parameters)");
             Stopwatch sw = new Stopwatch();
             sw.Start();
 
@@ -29,11 +31,16 @@ namespace LogParser
             FileInfo fileInfo = new FileInfo(response.LogFile);
             long filesize = fileInfo.Length;
 
+            Util.WriteLog("filesize: " + filesize);
+
             long offSet = 0;
             using (Stream stream = File.Open(response.LogFile, FileMode.Open))
             {
-                offSet = BinarySearchLogFile(stream, parameters.EndTime, 0, filesize, parameters.EndTime.Subtract(parameters.StartTime));
+                Util.WriteLog("BinarySearch");
+                offSet = BinarySearchLogFile(stream, parameters.EndTime, 0, filesize, parameters.EndTime.Subtract(parameters.StartTime), parameters);
             }
+
+            Util.WriteLog("offSet: " + offSet);
 
             if (offSet == -1)
             {
@@ -91,7 +98,7 @@ namespace LogParser
                         string line = reader.ReadLine();
                         i += line.Length;
 
-                        logDate = GetDateFromLog(line);
+                        logDate = GetDateFromLog(line, parameters);
                         
                         if (logDate != new DateTime())
                         {
@@ -155,10 +162,12 @@ namespace LogParser
             ReverseLineReader reader = new ReverseLineReader(fileName, offSet);
             long i = 0;
             long lastOffset = 0;
+            var lastLine = "";
             foreach (var line in reader)
             {
-                DateTime date = GetDateFromLog(line);
+                DateTime date = GetDateFromLog(line, parameters);
                 i += line.Length;
+                lastLine += line;
                 if ((date != new DateTime() && date <= parameters.StartTime))
                 {
                     return reader.OffSet - line.Length;
@@ -167,12 +176,14 @@ namespace LogParser
             }
 
             response.DataScanned += i;
-            return offSet;
+            return 0;
         }
 
-        public long BinarySearchLogFile(Stream stream, DateTime dateToQuery, long startingOffset, long endingOffSet, TimeSpan timespan)
+        public long BinarySearchLogFile(Stream stream, DateTime dateToQuery, long startingOffset, long endingOffSet, TimeSpan timespan, LogParserParameters parameters)
         {
             long middle = (endingOffSet - startingOffset) / 2L;
+            Util.WriteLog("BinarySearchLogFile(Stream stream, DateTime dateToQuery, long startingOffset, long endingOffSet, TimeSpan timespan)");
+            Util.WriteLog("middle: " + middle);
             if (middle < 0L)
             {
                 return -1L;
@@ -184,7 +195,8 @@ namespace LogParser
                 for (string str = ""; !reader.EndOfStream; str = str + readLine)
                 {
                     readLine = reader.ReadLine();
-                    DateTime dateFromLog = this.GetDateFromLog(readLine);
+                    Util.WriteLog("readLine: " + readLine);
+                    DateTime dateFromLog = this.GetDateFromLog(readLine, parameters);
                     if (dateFromLog != new DateTime())
                     {
                         TimeSpan span = dateFromLog.Subtract(dateToQuery);
@@ -196,7 +208,7 @@ namespace LogParser
                         if (span.TotalMinutes > timespan.TotalMinutes)
                         {
                             long offset = startingOffset + str.Length;
-                            return this.BinarySearchLogFile(stream, dateToQuery, offset, startingOffset + middle, timespan);
+                            return this.BinarySearchLogFile(stream, dateToQuery, offset, startingOffset + middle, timespan, parameters);
                         }
                         if ((span.TotalMinutes > 0.0) && (span.TotalMinutes < timespan.TotalMinutes))
                         {
@@ -205,7 +217,7 @@ namespace LogParser
                         if (span.TotalMinutes < 0.0)
                         {
                             long offset = (startingOffset + middle);
-                            return this.BinarySearchLogFile(stream, dateToQuery, offset, endingOffSet, timespan);
+                            return this.BinarySearchLogFile(stream, dateToQuery, offset, endingOffSet, timespan, parameters);
                         }
                     }
                 }
@@ -218,7 +230,7 @@ namespace LogParser
         public abstract void GetMetricFromLine(DateTime date, string line, LogParserParameters parameters,
             Dictionary<string, LogMetrics> logMetricsList);
 
-        public abstract DateTime GetDateFromLog(string line);
+        public abstract DateTime GetDateFromLog(string line, LogParserParameters parameters);
 
         public abstract Task<string> GetLogFile(string filePath);
 
