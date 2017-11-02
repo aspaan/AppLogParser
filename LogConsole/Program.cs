@@ -13,7 +13,7 @@ namespace LogConsole
     {
         static void Main(string[] args)
         {
-            var result = Get("php",WorkerType.Windows, "2017-08-05T07:35:00.000Z", "2017-08-05T23:35:00.000Z");
+            var result = Get("php",WorkerType.Linux, "2017-08-05T07:35:00.000Z", "2017-08-05T23:35:00.000Z");
             Console.WriteLine(result.Logs);
         }
 
@@ -34,7 +34,7 @@ namespace LogConsole
             p.TimeGrain = timeGrainTimeSpan;
             p.WorkerType = workerType;
 
-            Parser parser = ParserFactory.GetParser(stack);
+            Parser parser = ParserFactory.GetLinuxParser(stack);
 
             if (parser == null)
             {
