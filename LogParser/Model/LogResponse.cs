@@ -14,6 +14,7 @@ namespace LogParser
             LogMetrics = new Dictionary<string, LogMetrics>();
             LinkedLogs = new LinkedList<string>();
             ExceptionCount = new Dictionary<string, int>();
+            LogFiles = new List<string>();
         }
 
         [DataMember]
@@ -29,6 +30,9 @@ namespace LogParser
 
         [DataMember]
         public string LogFile { get; set; }
+
+        [DataMember]
+        public List<string> LogFiles { get; set; }
 
         [DataMember]
         public string SettingsFile { get; set; }

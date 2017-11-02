@@ -1,42 +1,35 @@
 ﻿using System;
-using System.Collections;
 using System.Collections.Generic;
-using System.Diagnostics;
-using System.Globalization;
 using System.IO;
 using System.Linq;
-using System.Linq.Expressions;
 using System.Text;
 using System.Threading.Tasks;
-using System.Web;
 
 namespace LogParser
 {
-    public class PhpLogParser: Parser
+    public class DockerLogParser : Parser
     {
-        public TimeZoneInfo TimeZoneInfo { get; set; }
 
         public override async Task<LogResponse> FindAndSetLoggingFileAndCreateResponseObject()
         {
             var response = new LogResponse();
+            response.LoggingEnabled = true;
+            response.SettingsFileFound = true;
+
 
             response.SettingsFile = Environment.ExpandEnvironmentVariables(@"%HOME%\site\wwwroot\.user.ini");
-            response.SettingsFileFound = File.Exists(response.SettingsFile);
 
-            if (response.SettingsFileFound)
-                response.LogFile = await GetLogFile(response.SettingsFile);
-            else
-                response.LogFile = "";
-
+            response.LogFile = await GetLogFile(response.SettingsFile);
             if (!File.Exists(response.LogFile))
             {
                 response.LogFile = @"D:\home\LogFiles\php_errors.log";
             }
             response.LogFileFound = File.Exists(response.LogFile);
 
+
             //overwrite to test locally
-            //response.LogFile = @"D:\Home\site\wwwroot\php_errors.log";
-            //response.LogFileFound = File.Exists(response.LogFile);
+            response.LogFile = @"D:\Home\site\wwwroot\php_errors.log";
+            response.LogFileFound = File.Exists(response.LogFile);
 
             return response;
         }
@@ -77,7 +70,7 @@ namespace LogParser
             {
                 return "Socket Permission Denied";
             }
-            if (line.ToLower().Contains("out of memory") 
+            if (line.ToLower().Contains("out of memory")
                 || (line.ToLower().Contains("allowed memory size of") && line.ToLower().Contains("bytes exhausted")))
             {
                 return "Out of Memory";
@@ -116,47 +109,28 @@ namespace LogParser
 
         public override DateTime GetDateFromLog(string line, LogParserParameters parameters)
         {
-            Util.WriteLog("GetDateFromLog(string line, LogParserParameters parameters)");
             var dateBracket = line.IndexOf("]");
             if (!line.StartsWith("[") || dateBracket == -1)
-            {
-                Util.WriteLog("returning: " + (new DateTime()));
                 return new DateTime();
-            }
-            
 
             string dateString = string.Join(" ", line.Substring(1, dateBracket - 1).Split().Take(2));
-           Util.WriteLog("dateString: " + dateString);
             string timeZone = line.Substring(1, dateBracket - 1).Split()[2];
-           Util.WriteLog("timeZone: " + timeZone);
 
             DateTime apiDate = DateTime.Parse(dateString + ((timeZone == "UTC") ? "Z" : ""));
 
-            if (parameters.WorkerType == WorkerType.Linux)
-            {
-                return Util.ConvertToUtcForLinux(apiDate, timeZone);
-            }
-            else
-            {
-                if (TimeZoneInfo == null)
-                {
-                    TimeZoneInfo = Util.OlsonTimeZoneToTimeZoneInfo(timeZone);
-                }
-                Util.WriteLog("TimeZone " + TimeZoneInfo.DisplayName);
-                if (timeZone == "UTC")
-                    return TimeZoneInfo.ConvertTime(apiDate, TimeZoneInfo);
+            TimeZoneInfo tzi = Util.OlsonTimeZoneToTimeZoneInfo(timeZone);
 
-                return TimeZoneInfo.ConvertTimeToUtc(apiDate, TimeZoneInfo);
-            }
+            if (timeZone == "UTC")
+                return TimeZoneInfo.ConvertTime(apiDate, tzi);
 
-
+            return TimeZoneInfo.ConvertTimeToUtc(apiDate, tzi);
         }
 
         public override string RemoveDateFromLog(string line)
         {
             var dateBracket = line.IndexOf("]");
             if (dateBracket > 0)
-                return line.Substring(dateBracket+1);
+                return line.Substring(dateBracket + 1);
 
             return line;
         }

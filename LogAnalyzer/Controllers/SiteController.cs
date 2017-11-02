@@ -27,6 +27,7 @@ namespace LogAnalyzer.Controllers
         [Route("linux/histogram")]
         public async Task<LogResponse> GetLinux(string stack, string startTime = null, string endTime = null, string timeGrain = null)
         {
+            Util.WriteLog("Call Started");
             return await Get(stack, WorkerType.Linux, startTime, endTime, timeGrain);
         }
 
@@ -39,6 +40,7 @@ namespace LogAnalyzer.Controllers
 
         private async Task<LogResponse> Get(string stack, WorkerType workerType, string startTime = null, string endTime = null, string timeGrain = null)
         {
+            Util.WriteLog( "Get(string stack, WorkerType workerType, string startTime = null, string endTime = null, string timeGrain = null)");
             DateTime startTimeUtc, endTimeUtc;
             TimeSpan timeGrainTimeSpan;
             string errorMessage;
@@ -60,6 +62,8 @@ namespace LogAnalyzer.Controllers
             p.WorkerType = workerType;
             
             var parser = workerType == WorkerType.Windows ? ParserFactory.GetParser(stack) : ParserFactory.GetLinuxParser(stack);
+
+            Util.WriteLog("Parser type: " +parser.GetType().Name);
 
             if (parser == null)
             {
