@@ -132,6 +132,9 @@ namespace LogParser
 
             DateTime apiDate = DateTime.Parse(dateString + ((timeZone == "UTC") ? "Z" : ""));
 
+            if (timeZone == "UTC")
+                return apiDate.ToUniversalTime();
+
             if (parameters.WorkerType == WorkerType.Linux)
             {
                 return Util.ConvertToUtcForLinux(apiDate, timeZone);

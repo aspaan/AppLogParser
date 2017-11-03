@@ -163,19 +163,19 @@ namespace LogParser
                 {
                     Util.WriteLog(tz.Message);
                     Util.WriteLog(tz.StackTrace);
-                    return TimeZoneInfo.Local;
+                    return TimeZoneInfo.Utc;
                 }
                 catch (InvalidTimeZoneException it)
                 {
                     Util.WriteLog(it.Message);
                     Util.WriteLog(it.StackTrace);
-                    return TimeZoneInfo.Local;
+                    return TimeZoneInfo.Utc;
                 }
                 catch (Exception ex)
                 {
                     Util.WriteLog(ex.Message);
                     Util.WriteLog(ex.StackTrace);
-                    return TimeZoneInfo.Local;
+                    return TimeZoneInfo.Utc;
                 }
             }
             return windowsTimeZone;
@@ -201,7 +201,7 @@ namespace LogParser
 
         public static void WriteLog(string line)
         {
-            //string logFile = @"/home/LogFiles/kudu/httpd/sitelog.txt";
+            //string logFile = @"/home/LogFiles/sitelog.txt";
             //File.AppendAllText(logFile, "\r\n" + DateTime.Now + ": " + line);
             ////Console.WriteLine(line);
         }
